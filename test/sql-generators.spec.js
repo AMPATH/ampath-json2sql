@@ -22,17 +22,69 @@ describe('Generate Column Specs', () => {
   describe('Should return columns when generateColumns() is called with a columns json object', () => {
     it('should return the correct select statement', () => {
       let columns = [{
-        type: 'column',
-        alias: 'age',
-        dataSetColumn: "p.age"
-      }, {
-        type: "expression",
-        alias: "age_range",
-        expressionType: "simple_expression",
-        expression: `case when age between 0 and 1 then '0_to_1'  else 'older_than_24'  end`
-      }];
+          type: 'column',
+          alias: 'age',
+          dataSetColumn: "p.age"
+        }, {
+          type: "expression",
+          alias: "age_range",
+          expressionType: "simple_expression",
+          expression: `case when age between 0 and 1 then '0_to_1'  else 'older_than_24'  end`
+        },
+        {
+          type: 'expression',
+          alias: 'age_range2',
+          expressionType: 'case_statement',
+          caseOptions: [{
+              condition: 'p.age beween 1 and 9',
+              value: '1_to_9'
+            },
+            {
+              condition: 'p.age beween 11 and 14',
+              value: '11_to_14'
+            },
+            {
+              condition: 'else',
+              value: 'older_than_24'
+            }
+          ]
+        }
+      ];
       expect(generate.generateColumns(columns).select.toString())
-        .equalIgnoreCase(`SELECT p.age as "age", case when age between 0 and 1 then '0_to_1'  else 'older_than_24'  end As "age_range"`)
+        .equalIgnoreCase(`SELECT p.age AS "age", case when age between 0 and 1 then '0_to_1'  else 'older_than_24'  end AS "age_range", CASE WHEN (p.age beween 11 and 14) THEN '11_to_14' WHEN (p.age beween 1 and 9) THEN '1_to_9' ELSE 'older_than_24' END AS "age_range2"`)
+    });
+  });
+});
+
+
+describe('Case Statement Specs', () => {
+  beforeEach(() => {
+    let select = Squel.select();
+    generate = new SqlGenerators(select);
+
+  });
+  describe('The correct query when when generateCase() is called with a case statement object', () => {
+    it('should return the correct select statement', () => {
+      let caseObject = {
+        type: 'expression',
+        alias: 'age_range',
+        expressionType: 'case_statement',
+        caseOptions: [{
+            condition: 'p.age beween 1 and 9',
+            value: '1_to_9'
+          },
+          {
+            condition: 'p.age beween 11 and 14',
+            value: '11_to_14'
+          },
+          {
+            condition: 'else',
+            value: 'older_than_24'
+          }
+        ]
+      };
+      expect(generate.generateCase(caseObject, {}).toString())
+        .equalIgnoreCase(`CASE WHEN (p.age beween 11 and 14) THEN '11_to_14' WHEN (p.age beween 1 and 9) THEN '1_to_9' ELSE 'older_than_24' END`)
     });
   });
 });
@@ -197,12 +249,20 @@ describe('Datasources specs', () => {
           type: "inner",
           joinCondition: "p.patient_id = hms.patient_id and p.voided is null"
         }
+      },
+      {
+        table: "amrs.patient",
+        alias: "p2",
+        join: {
+          type: "right",
+          joinCondition: "p2.patient_id = hms.patient_id and p.voided is null"
+        }
       }
     ];
     let select = Squel.select();
 
     expect(generate.generateDataSources(dataSources).select.toString())
-      .equalIgnoreCase('SELECT * FROM etl.hiv_monthly_summary `hms` INNER JOIN amrs.patient `p` ON (p.patient_id = hms.patient_id and p.voided is null)')
+      .equalIgnoreCase('SELECT * FROM etl.hiv_monthly_summary `hms` INNER JOIN amrs.patient `p` ON (p.patient_id = hms.patient_id and p.voided is null) RIGHT JOIN amrs.patient `p2` ON (p2.patient_id = hms.patient_id and p.voided is null)')
   });
 
   it('It Should generate the correct query with the defined joins when generateDataSources() is called with  datasets', () => {
@@ -280,7 +340,13 @@ describe('SQL to Json specs', () => {
       offSetParam: 0,
       groupByParam: ['age']
     };
+
     let baseSchema = {
+      columns: [{
+        type: 'column',
+        alias: '',
+        dataSetColumn: "*"
+      }],
       sources: [{
           table: "etl.hiv_monthly_summary",
           alias: "hms"
@@ -301,11 +367,50 @@ describe('SQL to Json specs', () => {
             joinCondition: "e.patient_id = hms.patient_id and e.voided is null"
           }
         }
-      ]
+      ],
+      groupBy: {
+        groupParam: "groupByParam",
+        columns: ["gender", "age"]
+      },
+      orderBy: {
+        orderByParam: "orderByParam",
+        columns: [{
+          column: "gender",
+          order: "asc"
+        }, {
+          column: "age",
+          order: "desc"
+        }]
+      },
+      paging: {
+        offSetParam: "offSetParam",
+        limitParam: "limitParam",
+      }
     };
 
     let dataSets = {
       enrolledDataSet: {
+        sources: [{
+          table: "etl.hiv_monthly_summary",
+          alias: "e"
+        }, {
+          dataSet: "otherTest",
+          alias: "o",
+          join: {
+            type: "left",
+            joinCondition: "e.patient_id = hms.patient_id and e.voided is null"
+          }
+        }],
+        filters: {
+          conditionJoinOperator: "and",
+          conditions: [{
+            filterType: "tableColumns",
+            conditionExpession: "endDate = ?",
+            parameterName: 'endDate'
+          }]
+        }
+      },
+      otherTest: {
         sources: [{
           table: "etl.hiv_monthly_summary",
           alias: "e"
@@ -324,7 +429,7 @@ describe('SQL to Json specs', () => {
     let json2sql = new Json2Sql(baseSchema, dataSets, params);
     let full = json2sql.generateSQL().toString();
     expect(full)
-      .equalIgnoreCase("SELECT * FROM etl.hiv_monthly_summary `hms` INNER JOIN amrs.patient `p` ON (p.patient_id = hms.patient_id and p.voided is null) INNER JOIN (SELECT * FROM etl.hiv_monthly_summary `e` WHERE (endDate = '2017-10-10')) `e` ON (e.patient_id = hms.patient_id and e.voided is null)")
+      .equalIgnoreCase("SELECT * FROM etl.hiv_monthly_summary `hms` INNER JOIN amrs.patient `p` ON (p.patient_id = hms.patient_id and p.voided is null) INNER JOIN (SELECT * FROM etl.hiv_monthly_summary `e` LEFT JOIN (SELECT * FROM etl.hiv_monthly_summary `e` WHERE (endDate = '2017-10-10')) `o` ON (e.patient_id = hms.patient_id and e.voided is null) WHERE (endDate = '2017-10-10')) `e` ON (e.patient_id = hms.patient_id and e.voided is null) GROUP BY age ORDER BY age ASC LIMIT 10 OFFSET 0")
   });
 
 });

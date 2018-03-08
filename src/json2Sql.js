@@ -29,7 +29,7 @@ export default class Json2Sql {
       generate.generateGroupBy(this.schema.groupBy, this.params);
     }
 
-    if (this.schema && this.schema.groupBy) {
+    if (this.schema && this.schema.orderBy) {
       generate.generateOrderBy(this.schema.orderBy, this.params);
     }
 

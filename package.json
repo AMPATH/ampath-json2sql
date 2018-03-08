@@ -6,7 +6,7 @@
   "scripts": {
     "build": "webpack --env dev && webpack --env build && npm run test",
     "dev": "webpack --progress --colors --watch --env dev",
-    "test": "mocha --require babel-core/register --colors ./test/*.spec.js",
+    "test": "nyc --reporter=html --reporter=text --check-coverage --lines 90 --per-file mocha --require babel-core/register --colors ./test/*.spec.js",
     "test:watch": "mocha --require babel-core/register --colors -w ./test/*.spec.js"
   },
   "repository": {
@@ -47,6 +47,7 @@
   },
   "dependencies": {
     "mocha-logger": "^1.0.5",
+    "nyc": "^11.4.1",
     "squel": "^5.12.0"
   }
 }

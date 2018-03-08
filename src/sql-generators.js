@@ -10,9 +10,12 @@ export default class SqlGenerators {
     for (let column of columns) {
       if (column.type === 'column') {
         this.select.field(column.dataSetColumn, column.alias);
-      } else {
+      } else if (column.expression && column.expressionType === 'simple_expression') {
         this.select.field(column.expression, column.alias);
+      } else {
+        this.select.field(this.generateCase(column), column.alias);
       }
+
 
     }
     return this;
@@ -57,10 +60,22 @@ export default class SqlGenerators {
       if (offset >= 0) {
         this.select.offset(offset);
       }
-      return this;
-    } else {
-      return this;
     }
+    return this;
+  }
+
+  generateCase(caseObject, params) {
+    let squelCase = Squel.case();
+    if (caseObject && caseObject.caseOptions) {
+      for (let option of caseObject.caseOptions) {
+        if (!(option.condition && option.condition.toUpperCase() === 'ELSE')) {
+          squelCase.when(option.condition).then(option.value);
+        } else {
+          squelCase.else(option.value);
+        }
+      }
+    }
+    return squelCase;
   }
 
 
