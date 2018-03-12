@@ -1,2 +1,3 @@
 import SqlGenerators from './sql-generators.js';
-export { SqlGenerators };
+import Json2Sql from './json2Sql.js';
+export { SqlGenerators , Json2Sql};
