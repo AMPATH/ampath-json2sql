@@ -63,10 +63,15 @@ describe('Generate Select Specs', () => {
         {
           type:'force',
           index_list:['index3','index4']
+        },
+        {
+          type:'ignore',
+          index_list:['index3','index4'],
+          for:''
         }
       ];
       expect(generate.addIndexDirectives(index_directives).select.toString())
-        .equalIgnoreCase(`SELECT USE INDEX FOR JOIN (index1,index2) , FORCE INDEX  (index3,index4)`)
+        .equalIgnoreCase(`SELECT USE INDEX FOR JOIN (index1,index2) , FORCE INDEX  (index3,index4) , IGNORE INDEX  (index3,index4)`)
     });
   });
 });
@@ -120,7 +125,8 @@ describe('Generate Where Specs', () => {
     };
     it('should return the correct select statement', () => {
       expect(generate.generateWhere(filters, {
-          endDate: '2017-10-10'
+          endDate: '2017-10-10',
+          
         }).select.toString())
         .equalIgnoreCase(`SELECT where (endDate = '2017-10-10')`)
     });
@@ -300,6 +306,50 @@ describe('Datasources specs', () => {
             filterType: "tableColumns",
             conditionExpession: "endDate = ?",
             parameterName: 'endDate'
+          }]
+        }
+      }
+    }
+    let params = {
+      endDate: "2017-10-10"
+    };
+    let select = Squel.select();
+
+    expect(generate.generateDataSources(dataSources, dataSets, params).select.toString())
+      .equalIgnoreCase("SELECT * FROM etl.hiv_monthly_summary `hms` INNER JOIN (SELECT * FROM etl.hiv_monthly_summary `e` WHERE (endDate = '2017-10-10')) `p` ON (p.patient_id = hms.patient_id and p.voided is null)")
+  });
+
+  it('It Should generate the correct query with the defined joins when generateDataSources() is called with  datasets', () => {
+    let dataSources = [{
+        table: "etl.hiv_monthly_summary",
+        alias: "hms"
+      },
+      {
+        dataSet: "enrolledDataSet",
+        alias: "p",
+        join: {
+          type: "inner",
+          joinCondition: "p.patient_id = hms.patient_id and p.voided is null"
+        },
+        forwarded_params: [
+          {
+              "mapping": "endDate:eDate"
+          }
+]
+      }
+    ];
+    let dataSets = {
+      enrolledDataSet: {
+        sources: [{
+          table: "etl.hiv_monthly_summary",
+          alias: "e"
+        }],
+        filters: {
+          conditionJoinOperator: "and",
+          conditions: [{
+            filterType: "tableColumns",
+            conditionExpession: "endDate = ?",
+            parameterName: 'eDate'
           }]
         }
       }

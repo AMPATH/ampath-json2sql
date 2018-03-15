@@ -104,6 +104,14 @@ export default class SqlGenerators {
     let firstRun = true;
     let selectSubquery = null;
     for (let dataSource of dataSources) {
+      if (dataSource.forwarded_params) {
+        for (const param of dataSource.forwarded_params) {
+          let paramsToMap = param.mapping.split(':');
+          let originalParam = params[0];
+          params[paramsToMap[1]] = params[paramsToMap[0]]
+        }
+
+      }
       if (dataSource.dataSet && dataSets) {
         let json2sql = new Json2Sql(dataSets[dataSource.dataSet], dataSets, params);
         selectSubquery = json2sql.generateSQL();
@@ -183,7 +191,7 @@ class CreateIndexBlock extends Squel.cls.Block {
   _isEmpty(val) {
     if (val === undefined)
       return true;
-      if (val === '')
+    if (val === '')
       return true;
     return false;
   }
