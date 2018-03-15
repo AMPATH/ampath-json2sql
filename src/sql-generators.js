@@ -105,12 +105,8 @@ export default class SqlGenerators {
     let selectSubquery = null;
     for (let dataSource of dataSources) {
       if (dataSource.forwarded_params) {
-        for (const param of dataSource.forwarded_params) {
-          let paramsToMap = param.mapping.split(':');
-          let originalParam = params[0];
-          params[paramsToMap[1]] = params[paramsToMap[0]]
-        }
-
+        
+        params = SqlGenerators.mapParams(dataSource,params);
       }
       if (dataSource.dataSet && dataSets) {
         let json2sql = new Json2Sql(dataSets[dataSource.dataSet], dataSets, params);
@@ -140,6 +136,23 @@ export default class SqlGenerators {
   addIndexDirectives(directives) {
     this.select.addIndexDirectives(directives);
     return this;
+  }
+
+ static mapParams(dataSource, params) {
+
+    for (const param of dataSource.forwarded_params) {
+      let paramsToMap = param.mapping.split(':');
+      let originalParam = params[0];
+      params[paramsToMap[1]] = params[paramsToMap[0]]
+    }
+    return params;
+  }
+
+  static mapParamsMultipleDataSources(dataSources, params) {
+    for (const dataSource of dataSources) {
+      SqlGenerators.mapParams(dataSource,params);
+    }
+    return params;
   }
 
   _addGroupColumns(select, columns) {
