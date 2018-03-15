@@ -148,10 +148,7 @@ export default class SqlGenerators {
     let selectSubquery = null;
 
     for (let dataSource of dataSources) {
-      if (dataSource.forwarded_params) {
-
-        params = SqlGenerators.mapParams(dataSource, params);
-      }
+      params = SqlGenerators.mapParams(dataSource, params);
       if (dataSource.dataSet && dataSets) {
         let json2sql = new Json2Sql(dataSets[dataSource.dataSet], dataSets, params);
 
@@ -185,11 +182,13 @@ export default class SqlGenerators {
   }
 
   static mapParams(dataSource, params) {
+    if (dataSource.forwardedParams) {
+      for (const param of dataSource.forwardedParams) {
 
-    for (const param of dataSource.forwarded_params) {
-      let paramsToMap = param.mapping.split(':');
+        let paramsToMap = param.mapping.split(':');
 
-      params[paramsToMap[1]] = params[paramsToMap[0]];
+        params[paramsToMap[1]] = params[paramsToMap[0]];
+      }
     }
     return params;
   }
@@ -218,4 +217,3 @@ export default class SqlGenerators {
     }
   }
 }
-

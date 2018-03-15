@@ -331,7 +331,7 @@ describe('Datasources specs', () => {
           type: "inner",
           joinCondition: "p.patient_id = hms.patient_id and p.voided is null"
         },
-        forwarded_params: [
+        forwardedParams: [
           {
               "mapping": "endDate:eDate"
           }
