@@ -1,7 +1,7 @@
 import SqlGenerators from './sql-generators.js';
-import * as Squel from 'squel';
 export default class Json2Sql {
   schema = null;
+  Squel = null;
   params = null;
   dataSets = null;
   constructor(schema, dataSets, params) {
@@ -11,8 +11,7 @@ export default class Json2Sql {
   }
 
   generateSQL() {
-    let select = Squel.select();
-    let generate = new SqlGenerators(select);
+    let generate = new SqlGenerators();
     if (this.schema && this.schema.sources) {
       generate.generateDataSources(this.schema.sources, this.dataSets, this.params);
     }
@@ -35,6 +34,10 @@ export default class Json2Sql {
 
     if (this.schema && this.schema.paging) {
       generate.generatePaging(this.schema.paging, this.params);
+    }
+
+    if (this.schema && this.schema.index_directives) {
+      generate.addIndexDirectives(this.schema.index_directives);
     }
     return generate.select;
   }
