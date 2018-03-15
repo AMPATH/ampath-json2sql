@@ -3,8 +3,31 @@ import Json2Sql from './json2Sql.js';
 
 export default class SqlGenerators {
   select = null;
-  constructor(select) {
-    this.select = select;
+  myselect = null;
+  str = null;
+  constructor() {
+    Squel.myselect = function (options) {
+      return Squel.select(options, [
+        new Squel.cls.StringBlock(options, 'SELECT'),
+        new Squel.cls.FunctionBlock(options),
+        new Squel.cls.DistinctBlock(options),
+        new Squel.cls.GetFieldBlock(options),
+        new Squel.cls.FromTableBlock(options),
+        new CreateIndexBlock(options),
+        new Squel.cls.JoinBlock(options),
+        new Squel.cls.WhereBlock(options),
+        new Squel.cls.GroupByBlock(options),
+        new Squel.cls.HavingBlock(options),
+        new Squel.cls.OrderByBlock(options),
+        new Squel.cls.LimitBlock(options),
+        new Squel.cls.OffsetBlock(options),
+        new Squel.cls.UnionBlock(options),
+      ]);
+    }
+    this.select = Squel.myselect({
+      tableAliasQuoteCharacter: '`',
+      fieldAliasQuoteCharacter: '`'
+    });
   }
   generateColumns(columns) {
     for (let column of columns) {
@@ -15,8 +38,6 @@ export default class SqlGenerators {
       } else {
         this.select.field(this.generateCase(column), column.alias);
       }
-
-
     }
     return this;
   }
@@ -108,6 +129,11 @@ export default class SqlGenerators {
     return this;
   }
 
+  addIndexDirectives(directives) {
+    this.select.addIndexDirectives(directives);
+    return this;
+  }
+
   _addGroupColumns(select, columns) {
     for (let column of columns) {
       select.group(column);
@@ -122,5 +148,43 @@ export default class SqlGenerators {
       }
       select.order(column.column, asc);
     }
+  }
+}
+
+class CreateIndexBlock extends Squel.cls.Block {
+
+  addIndexDirectives(directives) {
+    let column = '';
+    for (const directive of directives) {
+      column = column + ` ${directive.type.toUpperCase()} INDEX ${this._buildJoinFor(directive.for)} ${this._buildIndexList(directive.index_list)} ,`;
+    }
+    this._columnIndex = column.slice(0, -1).trim();
+  }
+
+  _toParamString() {
+    return {
+      text: this._columnIndex || '',
+      values: [],
+    };
+  }
+
+  _buildIndexList(list) {
+    return `(${list.join()})`;
+  }
+
+  _buildJoinFor(value) {
+    let joinFor = ''
+    if (!this._isEmpty(value)) {
+      joinFor = `FOR ${value.toUpperCase()}`
+    }
+    return joinFor;
+  }
+
+  _isEmpty(val) {
+    if (val === undefined)
+      return true;
+      if (val === '')
+      return true;
+    return false;
   }
 }

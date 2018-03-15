@@ -13,10 +13,9 @@ const expect = chai.expect;
 const should = chai.should;
 let generate;
 
-describe('Generate Column Specs', () => {
+describe('Generate Select Specs', () => {
   beforeEach(() => {
-    let select = Squel.select();
-    generate = new SqlGenerators(select);
+    generate = new SqlGenerators();
 
   });
   describe('Should return columns when generateColumns() is called with a columns json object', () => {
@@ -36,11 +35,11 @@ describe('Generate Column Specs', () => {
           alias: 'age_range2',
           expressionType: 'case_statement',
           caseOptions: [{
-              condition: 'p.age beween 1 and 9',
+              condition: 'p.age between 1 and 9',
               value: '1_to_9'
             },
             {
-              condition: 'p.age beween 11 and 14',
+              condition: 'p.age between 11 and 14',
               value: '11_to_14'
             },
             {
@@ -51,7 +50,23 @@ describe('Generate Column Specs', () => {
         }
       ];
       expect(generate.generateColumns(columns).select.toString())
-        .equalIgnoreCase(`SELECT p.age AS "age", case when age between 0 and 1 then '0_to_1'  else 'older_than_24'  end AS "age_range", CASE WHEN (p.age beween 11 and 14) THEN '11_to_14' WHEN (p.age beween 1 and 9) THEN '1_to_9' ELSE 'older_than_24' END AS "age_range2"`)
+        .equalIgnoreCase(`SELECT p.age AS \`age\`, case when age between 0 and 1 then '0_to_1'  else 'older_than_24'  end AS \`age_range\`, CASE WHEN (p.age between 11 and 14) THEN '11_to_14' WHEN (p.age between 1 and 9) THEN '1_to_9' ELSE 'older_than_24' END AS \`age_range2\``)
+    });
+
+    it('should return the correct select statement with index directives', () => {
+      let index_directives = [
+        {
+          type:'use',
+          index_list:['index1','index2'],
+          for:'join'
+        },
+        {
+          type:'force',
+          index_list:['index3','index4']
+        }
+      ];
+      expect(generate.addIndexDirectives(index_directives).select.toString())
+        .equalIgnoreCase(`SELECT USE INDEX FOR JOIN (index1,index2) , FORCE INDEX  (index3,index4)`)
     });
   });
 });
@@ -59,8 +74,7 @@ describe('Generate Column Specs', () => {
 
 describe('Case Statement Specs', () => {
   beforeEach(() => {
-    let select = Squel.select();
-    generate = new SqlGenerators(select);
+    generate = new SqlGenerators();
 
   });
   describe('The correct query when when generateCase() is called with a case statement object', () => {
@@ -70,11 +84,11 @@ describe('Case Statement Specs', () => {
         alias: 'age_range',
         expressionType: 'case_statement',
         caseOptions: [{
-            condition: 'p.age beween 1 and 9',
+            condition: 'p.age between 1 and 9',
             value: '1_to_9'
           },
           {
-            condition: 'p.age beween 11 and 14',
+            condition: 'p.age between 11 and 14',
             value: '11_to_14'
           },
           {
@@ -84,15 +98,14 @@ describe('Case Statement Specs', () => {
         ]
       };
       expect(generate.generateCase(caseObject, {}).toString())
-        .equalIgnoreCase(`CASE WHEN (p.age beween 11 and 14) THEN '11_to_14' WHEN (p.age beween 1 and 9) THEN '1_to_9' ELSE 'older_than_24' END`)
+        .equalIgnoreCase(`CASE WHEN (p.age between 11 and 14) THEN '11_to_14' WHEN (p.age between 1 and 9) THEN '1_to_9' ELSE 'older_than_24' END`)
     });
   });
 });
 
 describe('Generate Where Specs', () => {
   beforeEach(() => {
-    let select = Squel.select();
-    generate = new SqlGenerators(select);
+    generate = new SqlGenerators();
   });
   describe('Should return where clause when generateWhere() is called with a filters json object', () => {
     let select = Squel.select();
@@ -117,8 +130,7 @@ describe('Generate Where Specs', () => {
 describe('Generate Group by Specs', () => {
   describe('Should return group by clause when generateGroupBy() is called', () => {
     beforeEach(() => {
-      let select = Squel.select();
-      generate = new SqlGenerators(select);
+      generate = new SqlGenerators();
     });
     let groupBy = {
       groupParam: "groupByParam",
@@ -140,8 +152,7 @@ describe('Generate Group by Specs', () => {
 
 describe('Order by Specs', () => {
   beforeEach(() => {
-    let select = Squel.select();
-    generate = new SqlGenerators(select);
+    generate = new SqlGenerators();
   });
   describe('Should return order clause when generateOrderBy() is called ', () => {
     let orderBy = {
@@ -175,8 +186,7 @@ describe('Order by Specs', () => {
 
 describe('Paging by Specs', () => {
   beforeEach(() => {
-    let select = Squel.select();
-    generate = new SqlGenerators(select);
+    generate = new SqlGenerators();
   });
   describe('Should paginate generatePaging() is called ', () => {
     it('should not set paging if paging is not defined', () => {
@@ -234,8 +244,7 @@ describe('Paging by Specs', () => {
 describe('Datasources specs', () => {
 
   beforeEach(() => {
-    let select = Squel.select();
-    generate = new SqlGenerators(select);
+    generate = new SqlGenerators();
   });
   it('It Should generate the correct query with the defined joins when generateDataSources() is called', () => {
     let dataSources = [{
@@ -307,8 +316,7 @@ describe('Datasources specs', () => {
 
 describe('SQL to Json specs', () => {
   beforeEach(() => {
-    let select = Squel.select();
-    generate = new SqlGenerators(select);
+    generate = new SqlGenerators();
   });
 
   it('I should return the correct sql when the functions are chained together', () => {
@@ -341,7 +349,20 @@ describe('SQL to Json specs', () => {
       groupByParam: ['age']
     };
 
+    let index_directives = [
+      {
+        type:'use',
+        index_list:['index1','index2'],
+        for:'join'
+      },
+      {
+        type:'force',
+        index_list:['index3','index4']
+      }
+    ];
+
     let baseSchema = {
+      index_directives,
       columns: [{
         type: 'column',
         alias: '',
@@ -429,7 +450,275 @@ describe('SQL to Json specs', () => {
     let json2sql = new Json2Sql(baseSchema, dataSets, params);
     let full = json2sql.generateSQL().toString();
     expect(full)
-      .equalIgnoreCase("SELECT * FROM etl.hiv_monthly_summary `hms` INNER JOIN amrs.patient `p` ON (p.patient_id = hms.patient_id and p.voided is null) INNER JOIN (SELECT * FROM etl.hiv_monthly_summary `e` LEFT JOIN (SELECT * FROM etl.hiv_monthly_summary `e` WHERE (endDate = '2017-10-10')) `o` ON (e.patient_id = hms.patient_id and e.voided is null) WHERE (endDate = '2017-10-10')) `e` ON (e.patient_id = hms.patient_id and e.voided is null) GROUP BY age ORDER BY age ASC LIMIT 10 OFFSET 0")
+      .equalIgnoreCase("SELECT * FROM etl.hiv_monthly_summary `hms` USE INDEX FOR JOIN (index1,index2) , FORCE INDEX  (index3,index4) INNER JOIN amrs.patient `p` ON (p.patient_id = hms.patient_id and p.voided is null) INNER JOIN (SELECT * FROM etl.hiv_monthly_summary `e` LEFT JOIN (SELECT * FROM etl.hiv_monthly_summary `e` WHERE (endDate = '2017-10-10')) `o` ON (e.patient_id = hms.patient_id and e.voided is null) WHERE (endDate = '2017-10-10')) `e` ON (e.patient_id = hms.patient_id and e.voided is null) GROUP BY age ORDER BY age ASC LIMIT 10 OFFSET 0")
+  });
+
+  describe('MOH 731 green card tests', () => {
+    beforeEach(() => {
+      generate = new SqlGenerators();
+    });
+
+    let mainSchema = {
+      columns: [{
+          type: 'column',
+          alias: 'gender',
+          dataSetColumn: "hmsd.gender"
+        },
+        {
+          type: 'column',
+          alias: 'age_range',
+          dataSetColumn: "hmsd.age_range"
+        },
+        {
+          type: "expression",
+          alias: "enrolled_this_month",
+          expressionType: "simple_expression",
+          expression: `count(hmsd.enrolled_this_month)`
+        },
+        {
+          type: "expression",
+          alias: "pre_art",
+          expressionType: "simple_expression",
+          expression: `count(hmsd.pre_art)`
+        },
+        {
+          type: "expression",
+          alias: "started_art",
+          expressionType: "simple_expression",
+          expression: `count(hmsd.started_art)`
+        },
+        {
+          type: "expression",
+          alias: "current_in_care",
+          expressionType: "simple_expression",
+          expression: `count(hmsd.current_in_care)`
+        },
+        {
+          type: "expression",
+          alias: "active_on_art",
+          expressionType: "simple_expression",
+          expression: `count(hmsd.active_on_art)`
+        },
+        {
+          type: "expression",
+          alias: "on_ctx_prophylaxis",
+          expressionType: "simple_expression",
+          expression: `count(hmsd.on_ctx_prophylaxis)`
+        },
+        {
+          type: "expression",
+          alias: "screened_for_tb",
+          expressionType: "simple_expression",
+          expression: `sum(hmsd.screened_for_tb)`
+        },
+        {
+          type: "expression",
+          alias: "tb_screened_positive",
+          expressionType: "simple_expression",
+          expression: `sum(hmsd.tb_screened_positive)`
+        },
+        {
+          type: "expression",
+          alias: "started_ipt",
+          expressionType: "simple_expression",
+          expression: `sum(hmsd.started_ipt)`
+        },
+        {
+          type: "expression",
+          alias: "completed_ipt_past_12_months",
+          expressionType: "simple_expression",
+          expression: `sum(hmsd.completed_ipt_past_12_months)`
+        },
+        {
+          type: "expression",
+          alias: "condoms_provided",
+          expressionType: "simple_expression",
+          expression: `sum(hmsd.condoms_provided)`
+        },
+        {
+          type: "expression",
+          alias: "started_modern_contraception",
+          expressionType: "simple_expression",
+          expression: `sum(hmsd.condoms_provided)`
+        },
+        {
+          type: "expression",
+          alias: "on_modern_contraception",
+          expressionType: "simple_expression",
+          expression: `sum(hmsd.on_modern_contraception)`
+        },
+        {
+          type: "expression",
+          alias: "f_gte_18_visits",
+          expressionType: "simple_expression",
+          expression: `sum(hmsd.f_gte_18_visits)`
+        }
+      ],
+      sources: [
+      {
+        dataSet: "baseSchema",
+        alias: "hmsd"
+      }],
+      groupBy: {
+        groupParam: "groupByParam",
+        columns: ["gender", "age_range"]
+      }
+    };
+
+    let baseSchema = {
+      columns: [{
+          type: 'column',
+          alias: 'gender',
+          dataSetColumn: "hmsd.gender"
+        },
+        {
+          type: 'expression',
+          alias: 'age_range',
+          expressionType: 'case_statement',
+          caseOptions: [{
+              condition: 'hmsd.age < 1',
+              value: '0_to_1'
+            },
+            {
+              condition: 'hmsd.age between 1 and 9',
+              value: '1_to_9'
+            },
+            {
+              condition: 'hmsd.age between 10 and 14',
+              value: '10_to_14'
+            },
+            {
+              condition: 'hmsd.age between 15 and 19',
+              value: '15_to_19'
+            },
+            {
+              condition: 'hmsd.age between 20 and 24',
+              value: '20_to_24'
+            },
+            {
+              condition: 'else',
+              value: 'older_than_24'
+            }
+          ]
+        },
+        {
+          type: "expression",
+          alias: "enrolled_this_month",
+          expressionType: "simple_expression",
+          expression: `case when enrolled_this_month=1 then 1 else null end`
+        },
+        {
+          type: "expression",
+          alias: "pre_art",
+          expressionType: "simple_expression",
+          expression: `if(arv_first_regimen is null and status='active',1,null)`
+        },
+        {
+          type: "expression",
+          alias: "started_art",
+          expressionType: "simple_expression",
+          expression: `if(started_art_this_month=1  AND location_id = arv_first_regimen_location_id,1,null)`
+        },
+        {
+          type: "expression",
+          alias: "current_in_care",
+          expressionType: "simple_expression",
+          expression: `case when status='active' then 1 else null end`
+        },
+        {
+          type: "expression",
+          alias: "active_on_art",
+          expressionType: "simple_expression",
+          expression: `case when status='active' and on_art_this_month=1 then 1 else null end`
+        },
+        {
+          type: "expression",
+          alias: "on_ctx_prophylaxis",
+          expressionType: "simple_expression",
+          expression: `case when status='active' and on_pcp_prophylaxis_this_month=1 then 1 else null end`
+        },
+        {
+          type: "expression",
+          alias: "screened_for_tb",
+          expressionType: "simple_expression",
+          expression: `tb_screened_since_active`
+        },
+        {
+          type: "expression",
+          alias: "tb_screened_positive",
+          expressionType: "simple_expression",
+          expression: `tb_screened_positive_this_month`
+        },
+        {
+          type: "expression",
+          alias: "started_ipt",
+          expressionType: "simple_expression",
+          expression: `started_ipt_this_month`
+        },
+        {
+          type: "expression",
+          alias: "completed_ipt_past_12_months",
+          expressionType: "simple_expression",
+          expression: `completed_ipt_past_12_months`
+        },
+        {
+          type: "expression",
+          alias: "condoms_provided",
+          expressionType: "simple_expression",
+          expression: `condoms_provided_this_month`
+        },
+        {
+          type: "expression",
+          alias: "started_modern_contraception",
+          expressionType: "simple_expression",
+          expression: `started_modern_contraception_this_month`
+        },
+        {
+          type: "expression",
+          alias: "on_modern_contraception",
+          expressionType: "simple_expression",
+          expression: `if(gender='F' and age>=15 and modern_contraception_since_active=1,1,0)`
+        },
+        {
+          type: "expression",
+          alias: "f_gte_18_visits",
+          expressionType: "simple_expression",
+          expression: `if(gender='F' and age >= 18 and visit_this_month=1,1,0)`
+        }
+      ],
+      sources: [{
+        table: "etl.hiv_monthly_report_dataset",
+        alias: "hmsd"
+      }],
+      filters: {
+        conditionJoinOperator: "and",
+        conditions: [{
+          filterType: "tableColumns",
+          conditionExpession: "endDate = ?",
+          parameterName: 'endDate'
+        }]
+      }
+    };
+
+
+    it('should generate the correct moh731 queries given the schemas', () => {
+      let json2sql = new Json2Sql(mainSchema, {baseSchema}, {
+        endDate: "2017-11-30"
+      });
+      let base = json2sql.generateSQL().toString();
+      expect(base)
+        .equalIgnoreCase("SELECT hmsd.gender AS `gender`, hmsd.age_range AS `age_range`, count(hmsd.enrolled_this_month) AS `enrolled_this_month`, count(hmsd.pre_art) AS `pre_art`, count(hmsd.started_art) AS `started_art`, count(hmsd.current_in_care) AS `current_in_care`, count(hmsd.active_on_art) AS `active_on_art`, count(hmsd.on_ctx_prophylaxis) AS `on_ctx_prophylaxis`, sum(hmsd.screened_for_tb) AS `screened_for_tb`, sum(hmsd.tb_screened_positive) AS `tb_screened_positive`, sum(hmsd.started_ipt) AS `started_ipt`, sum(hmsd.completed_ipt_past_12_months) AS `completed_ipt_past_12_months`, sum(hmsd.condoms_provided) AS `condoms_provided`, sum(hmsd.condoms_provided) AS `started_modern_contraception`, sum(hmsd.on_modern_contraception) AS `on_modern_contraception`, sum(hmsd.f_gte_18_visits) AS `f_gte_18_visits` FROM (SELECT hmsd.gender AS `gender`, CASE WHEN (hmsd.age between 20 and 24) THEN '20_to_24' WHEN (hmsd.age between 15 and 19) THEN '15_to_19' WHEN (hmsd.age between 10 and 14) THEN '10_to_14' WHEN (hmsd.age between 1 and 9) THEN '1_to_9' WHEN (hmsd.age < 1) THEN '0_to_1' ELSE 'older_than_24' END AS `age_range`, case when enrolled_this_month=1 then 1 else null end AS `enrolled_this_month`, if(arv_first_regimen is null and status='active',1,null) AS `pre_art`, if(started_art_this_month=1  AND location_id = arv_first_regimen_location_id,1,null) AS `started_art`, case when status='active' then 1 else null end AS `current_in_care`, case when status='active' and on_art_this_month=1 then 1 else null end AS `active_on_art`, case when status='active' and on_pcp_prophylaxis_this_month=1 then 1 else null end AS `on_ctx_prophylaxis`, tb_screened_since_active AS `screened_for_tb`, tb_screened_positive_this_month AS `tb_screened_positive`, started_ipt_this_month AS `started_ipt`, completed_ipt_past_12_months AS `completed_ipt_past_12_months`, condoms_provided_this_month AS `condoms_provided`, started_modern_contraception_this_month AS `started_modern_contraception`, if(gender='F' and age>=15 and modern_contraception_since_active=1,1,0) AS `on_modern_contraception`, if(gender='F' and age >= 18 and visit_this_month=1,1,0) AS `f_gte_18_visits` FROM etl.hiv_monthly_report_dataset `hmsd` WHERE (endDate = '2017-11-30')) `hmsd` GROUP BY gender, age_range")
+      
+    });
+  });
+
+
+  describe('MOH 731 blue card tests', () => {
+    beforeEach(() => {
+
+      generate = new SqlGenerators();
+    });
+
   });
 
 });
