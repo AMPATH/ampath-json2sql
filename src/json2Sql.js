@@ -12,6 +12,7 @@ export default class Json2Sql {
 
   generateSQL() {
     let generate = new SqlGenerators();
+
     if (this.schema && this.schema.sources) {
       generate.generateDataSources(this.schema.sources, this.dataSets, this.params);
     }

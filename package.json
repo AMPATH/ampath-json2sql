@@ -2,7 +2,7 @@
   "name": "ampath-json2sql",
   "version": "1.0.2",
   "description": "Produce universal library with webpack and es6",
-  "main": "lib/library.js",
+  "main": "lib/ampath-json2sql.js",
   "scripts": {
     "build": "webpack --env dev && webpack --env build && npm run test",
     "dev": "webpack --progress --colors --watch --env dev",
@@ -40,7 +40,12 @@
     "chai": "^4.1.2",
     "chai-string": "^1.4.0",
     "eslint": "^4.13.1",
+    "eslint-config-standard": "^11.0.0",
     "eslint-loader": "^1.9.0",
+    "eslint-plugin-import": "^2.9.0",
+    "eslint-plugin-node": "^6.0.1",
+    "eslint-plugin-promise": "^3.7.0",
+    "eslint-plugin-standard": "^3.0.1",
     "mocha": "^4.0.1",
     "webpack": "^3.10.0",
     "yargs": "^10.0.3"
