@@ -1,10 +1,51 @@
 import * as Squel from 'squel';
 import Json2Sql from './json2Sql.js';
 
+class CreateIndexBlock extends Squel.cls.Block {
+
+  addIndexDirectives(directives) {
+    let column = '';
+
+    for (const directive of directives) {
+      // eslint-disable-next-line max-len
+      column = column + ` ${directive.type.toUpperCase()} INDEX ${this._buildJoinFor(directive.for)} ${this._buildIndexList(directive.index_list)} ,`;
+    }
+    this._columnIndex = column.slice(0, -1).trim();
+  }
+
+  _toParamString() {
+    return {
+      text: this._columnIndex || '',
+      values: []
+    };
+  }
+
+  _buildIndexList(list) {
+    return `(${list.join()})`;
+  }
+
+  _buildJoinFor(value) {
+    let joinFor = '';
+
+    if (!this._isEmpty(value)) {
+      joinFor = `FOR ${value.toUpperCase()}`;
+    }
+    return joinFor;
+  }
+
+  _isEmpty(val) {
+    if (val === undefined) {
+      return true;
+    }
+    if (val === '') {
+      return true;
+    }
+    return false;
+  }
+}
+
 export default class SqlGenerators {
   select = null;
-  myselect = null;
-  str = null;
   constructor() {
     Squel.myselect = function (options) {
       return Squel.select(options, [
@@ -21,9 +62,9 @@ export default class SqlGenerators {
         new Squel.cls.OrderByBlock(options),
         new Squel.cls.LimitBlock(options),
         new Squel.cls.OffsetBlock(options),
-        new Squel.cls.UnionBlock(options),
+        new Squel.cls.UnionBlock(options)
       ]);
-    }
+    };
     this.select = Squel.myselect({
       tableAliasQuoteCharacter: '`',
       fieldAliasQuoteCharacter: '`'
@@ -43,38 +84,40 @@ export default class SqlGenerators {
   }
   generateWhere(filters, params) {
     for (let condition of filters.conditions) {
-      this.select.where(condition.conditionExpession, params[condition.parameterName])
+      this.select.where(condition.conditionExpession, params[condition.parameterName]);
     }
     return this;
   }
 
   generateGroupBy(groupBy, params) {
     let groupParams = params[groupBy.groupParam] || [];
+
     if (groupParams.length > 0) {
       this._addGroupColumns(this.select, groupParams);
       return this;
-    } else {
-      this._addGroupColumns(this.select, groupBy.columns);
-      return this;
     }
-  }
+    this._addGroupColumns(this.select, groupBy.columns);
+    return this;
 
+  }
 
   generateOrderBy(orderBy, params) {
     let orderParams = params[orderBy.orderByParam] || [];
+
     if (orderParams.length > 0) {
       this._addOrderColumns(this.select, orderParams);
       return this;
-    } else {
-      this._addOrderColumns(this.select, orderBy.columns);
-      return this;
     }
+    this._addOrderColumns(this.select, orderBy.columns);
+    return this;
+
   }
 
   generatePaging(paging, params) {
     if (paging) {
       let limit = params[paging.limitParam];
       let offset = params[paging.offSetParam];
+
       if (limit >= 0) {
         this.select.limit(limit);
       }
@@ -87,6 +130,7 @@ export default class SqlGenerators {
 
   generateCase(caseObject, params) {
     let squelCase = Squel.case();
+
     if (caseObject && caseObject.caseOptions) {
       for (let option of caseObject.caseOptions) {
         if (!(option.condition && option.condition.toUpperCase() === 'ELSE')) {
@@ -99,17 +143,18 @@ export default class SqlGenerators {
     return squelCase;
   }
 
-
   generateDataSources(dataSources, dataSets, params) {
     let firstRun = true;
     let selectSubquery = null;
+
     for (let dataSource of dataSources) {
       if (dataSource.forwarded_params) {
-        
-        params = SqlGenerators.mapParams(dataSource,params);
+
+        params = SqlGenerators.mapParams(dataSource, params);
       }
       if (dataSource.dataSet && dataSets) {
         let json2sql = new Json2Sql(dataSets[dataSource.dataSet], dataSets, params);
+
         selectSubquery = json2sql.generateSQL();
       }
       if (firstRun) {
@@ -118,6 +163,7 @@ export default class SqlGenerators {
       }
       if (!firstRun && dataSource.join) {
         let joinType = dataSource.join.type.toUpperCase();
+
         switch (joinType) {
           case 'RIGHT':
             this.select.right_join(selectSubquery || dataSource.table, dataSource.alias, dataSource.join.joinCondition);
@@ -138,19 +184,19 @@ export default class SqlGenerators {
     return this;
   }
 
- static mapParams(dataSource, params) {
+  static mapParams(dataSource, params) {
 
     for (const param of dataSource.forwarded_params) {
       let paramsToMap = param.mapping.split(':');
-      let originalParam = params[0];
-      params[paramsToMap[1]] = params[paramsToMap[0]]
+
+      params[paramsToMap[1]] = params[paramsToMap[0]];
     }
     return params;
   }
 
   static mapParamsMultipleDataSources(dataSources, params) {
     for (const dataSource of dataSources) {
-      SqlGenerators.mapParams(dataSource,params);
+      SqlGenerators.mapParams(dataSource, params);
     }
     return params;
   }
@@ -164,6 +210,7 @@ export default class SqlGenerators {
   _addOrderColumns(select, columns) {
     for (let column of columns) {
       let asc = true;
+
       if (column.order && column.order.toUpperCase() === 'desc'.toUpperCase()) {
         asc = false;
       }
@@ -172,40 +219,3 @@ export default class SqlGenerators {
   }
 }
 
-class CreateIndexBlock extends Squel.cls.Block {
-
-  addIndexDirectives(directives) {
-    let column = '';
-    for (const directive of directives) {
-      column = column + ` ${directive.type.toUpperCase()} INDEX ${this._buildJoinFor(directive.for)} ${this._buildIndexList(directive.index_list)} ,`;
-    }
-    this._columnIndex = column.slice(0, -1).trim();
-  }
-
-  _toParamString() {
-    return {
-      text: this._columnIndex || '',
-      values: [],
-    };
-  }
-
-  _buildIndexList(list) {
-    return `(${list.join()})`;
-  }
-
-  _buildJoinFor(value) {
-    let joinFor = ''
-    if (!this._isEmpty(value)) {
-      joinFor = `FOR ${value.toUpperCase()}`
-    }
-    return joinFor;
-  }
-
-  _isEmpty(val) {
-    if (val === undefined)
-      return true;
-    if (val === '')
-      return true;
-    return false;
-  }
-}
