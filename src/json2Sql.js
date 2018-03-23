@@ -37,8 +37,8 @@ export default class Json2Sql {
       generate.generatePaging(this.schema.paging, this.params);
     }
 
-    if (this.schema && this.schema.index_directives) {
-      generate.addIndexDirectives(this.schema.index_directives);
+    if (this.schema && this.schema.indexDirectives) {
+      generate.addIndexDirectives(this.schema.indexDirectives);
     }
     return generate.select;
   }
