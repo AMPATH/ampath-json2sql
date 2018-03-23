@@ -1,6 +1,6 @@
 {
   "name": "ampath-json2sql",
-  "version": "1.0.1",
+  "version": "1.0.3",
   "description": "Produce universal library with webpack and es6",
   "main": "lib/ampath-json2sql.js",
   "scripts": {
