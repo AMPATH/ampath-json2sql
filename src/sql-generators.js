@@ -8,7 +8,7 @@ class CreateIndexBlock extends Squel.cls.Block {
 
     for (const directive of directives) {
       // eslint-disable-next-line max-len
-      column = column + ` ${directive.type.toUpperCase()} INDEX ${this._buildJoinFor(directive.for)} ${this._buildIndexList(directive.index_list)} ,`;
+      column = column + ` ${directive.type.toUpperCase()} INDEX ${this._buildJoinFor(directive.for)} ${this._buildIndexList(directive.indexList)} ,`;
     }
     this._columnIndex = column.slice(0, -1).trim();
   }
@@ -21,7 +21,11 @@ class CreateIndexBlock extends Squel.cls.Block {
   }
 
   _buildIndexList(list) {
-    return `(${list.join()})`;
+    if (list) {
+      return `(${list.join()})`;
+    }
+    return '';
+
   }
 
   _buildJoinFor(value) {
@@ -72,10 +76,11 @@ export default class SqlGenerators {
   }
   generateColumns(columns) {
     for (let column of columns) {
-      if (column.type === 'column') {
-        this.select.field(column.dataSetColumn, column.alias);
-      } else if (column.expression && column.expressionType === 'simple_expression') {
-        this.select.field(column.expression, column.alias);
+      if (column.type === 'simple_column') {
+        this.select.field(column.column, column.alias);
+      } else if (column.type === 'derived_column' && column.expressionType === 'simple_expression' &&
+        column.expressionOptions && column.expressionOptions.expression) {
+        this.select.field(column.expressionOptions.expression, column.alias);
       } else {
         this.select.field(this.generateCase(column), column.alias);
       }
@@ -131,8 +136,8 @@ export default class SqlGenerators {
   generateCase(caseObject, params) {
     let squelCase = Squel.case();
 
-    if (caseObject && caseObject.caseOptions) {
-      for (let option of caseObject.caseOptions) {
+    if (caseObject && caseObject.expressionOptions && caseObject.expressionOptions.caseOptions) {
+      for (let option of caseObject.expressionOptions.caseOptions) {
         if (!(option.condition && option.condition.toUpperCase() === 'ELSE')) {
           squelCase.when(option.condition).then(option.value);
         } else {
