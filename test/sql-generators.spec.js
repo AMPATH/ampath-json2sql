@@ -126,7 +126,7 @@ describe('Generate Where Specs', () => {
       conditionJoinOperator: 'and',
       conditions: [{
         filterType: 'tableColumns',
-        conditionExpession: 'endDate = ?',
+        conditionExpression: 'endDate = ?',
         parameterName: 'endDate'
       }]
     };
@@ -315,7 +315,7 @@ describe('Datasources specs', () => {
           conditionJoinOperator: 'and',
           conditions: [{
             filterType: 'tableColumns',
-            conditionExpession: 'endDate = ?',
+            conditionExpression: 'endDate = ?',
             parameterName: 'endDate'
           }]
         }
@@ -357,7 +357,7 @@ describe('Datasources specs', () => {
           conditionJoinOperator: 'and',
           conditions: [{
             filterType: 'tableColumns',
-            conditionExpession: 'endDate = ?',
+            conditionExpression: 'endDate = ?',
             parameterName: 'eDate'
           }]
         }
@@ -484,7 +484,7 @@ describe('SQL to Json specs', () => {
           conditionJoinOperator: 'and',
           conditions: [{
             filterType: 'tableColumns',
-            conditionExpession: 'endDate = ?',
+            conditionExpression: 'endDate = ?',
             parameterName: 'endDate'
           }]
         }
@@ -498,7 +498,7 @@ describe('SQL to Json specs', () => {
           conditionJoinOperator: 'and',
           conditions: [{
             filterType: 'tableColumns',
-            conditionExpession: 'endDate = ?',
+            conditionExpression: 'endDate = ?',
             parameterName: 'endDate'
           }]
         }
@@ -810,7 +810,7 @@ describe('SQL to Json specs', () => {
         conditionJoinOperator: 'and',
         conditions: [{
           filterType: 'tableColumns',
-          conditionExpession: 'endDate = ?',
+          conditionExpression: 'endDate = ?',
           parameterName: 'endDate'
         }]
       }
@@ -823,6 +823,171 @@ describe('SQL to Json specs', () => {
         endDate: '2017-11-30'
       });
       let base = json2sql.generateSQL().toString();
+      let baseSchem = {
+        "name": "retentionDataSetbase",
+        "version": "1.0",
+        "tag": "",
+        "description": "",
+        "uses": [],
+        "sources": [
+            {
+                "table": "etl.hiv_monthly_report_dataset",
+                "alias": "hmsd"
+            },
+            {
+                "table": "amrs.person",
+                "alias": "t1",
+                "join": {
+                    "type": "INNER",
+                    "joinCondition": "hmsd.person_id = t1.person_id"
+                }
+            },
+            {
+                "table": "amrs.person_name",
+                "alias": "person_name",
+                "join": {
+                    "type": "INNER",
+                    "joinCondition": "t1.person_id = person_name.person_id AND (person_name.voided IS NULL || person_name.voided = 0)"
+                }
+            },
+            {
+                "table": "amrs.patient_identifier",
+                "alias": "id",
+                "join": {
+                    "type": "LEFT OUTER",
+                    "joinCondition": "t1.person_id = person_name.person_id AND (person_name.voided IS NULL || person_name.voided = 0)"
+                }
+            }
+        ],
+        "columns": [
+            {
+                "type": "simple_column",
+                "alias": "location_id",
+                "column": "hmsd.location_id"
+            },
+            {
+                "type": "simple_column",
+                "alias": "person_id",
+                "column": "hmsd.person_id"
+            },
+            {
+                "alias": "net_cohort",
+                "expressionOptions": {
+                    "expression": "1"
+                },
+                "type": "derived_column",
+                "expressionType": "simple_expression"
+            },
+            {
+                "alias": "active",
+                "expressionOptions": {
+                    "expression": "if(status='active',1,null)"
+                },
+                "type": "derived_column",
+                "expressionType": "simple_expression"
+            },
+            {
+                "alias": "ltfu",
+                "expressionOptions": {
+                    "expression": "if(status='ltfu',1,null)"
+                },
+                "type": "derived_column",
+                "expressionType": "simple_expression"
+            },
+            {
+                "alias": "dead",
+                "expressionOptions": {
+                    "expression": "if(status='dead',1,null)"
+                },
+                "type": "derived_column",
+                "expressionType": "simple_expression"
+            },
+            {
+                "alias": "on_tx",
+                "expressionOptions": {
+                    "expression": "if(on_art_this_month=1,1,null)"
+                },
+                "type": "derived_column",
+                "expressionType": "simple_expression"
+            },
+            {
+                "alias": "suppressed",
+                "expressionOptions": {
+                    "expression": "if(vl_1<1000 and vl_in_past_year=1,1,null)"
+                },
+                "type": "derived_column",
+                "expressionType": "simple_expression"
+            },
+            {
+                "alias": "total_with_vl",
+                "expressionOptions": {
+                    "expression": "if(vl_in_past_year=1,1,null)"
+                },
+                "type": "derived_column",
+                "expressionType": "simple_expression"
+            },
+            {
+                "type": "derived_column",
+                "alias": "person_name",
+                "expressionType": "simple_expression",
+                "expressionOptions": {
+                    "expression": " CONCAT(COALESCE(person_name.given_name, ''), ' ', COALESCE(person_name.middle_name, ''), ' ', COALESCE(person_name.family_name, ''))"
+                }
+            },
+            {
+                "type": "derived_column",
+                "alias": "person_identifiers",
+                "expressionType": "simple_expression",
+                "expressionOptions": {
+                    "expression": " GROUP_CONCAT(DISTINCT id.identifier SEPARATOR ', ')"
+                }
+            }
+        ],
+        "filters": {
+            "conditionJoinOperator": "and",
+            "conditions": [
+                {
+                    "filterType": "tableColumns",
+                    "conditionExpression": "endDate = ?",
+                    "parameterName": "endDate"
+                },
+                {
+                    "filterType": "tableColumns",
+                    "conditionExpression": "status in ('active','ltfu','dead')",
+                    "parameterName": ""
+                },
+                {
+                    "filterType": "tableColumns",
+                    "conditionExpression": "arv_first_regimen_start_date between date_format(date_sub(endDate,interval 1 year),'%Y-%m-01') and date_sub(endDate,interval 1 year)",
+                    "parameterName": ""
+                },
+                {
+                  "filterActingOn": "derived_column",
+                  "conditionExpression": "1 = (if(status='active',1,null))",
+                  "dynamicallyGenerated": true,
+                  "filterType": "tableColumns",
+                  "parameterName": ""
+              }
+            ]
+        },
+
+        "paging": {
+            "offSetParam": "offSetParam",
+            "limitParam": "limitParam"
+        },
+        "groupBy": {
+            "columns": [
+                "t1.person_id"
+            ]
+        }
+    };
+      let json2sql2 = new Json2Sql(baseSchem, {
+        baseSchem
+      }, {
+        endDate: '2017-11-30'
+      });
+      let r = json2sql2.generateSQL().toString();
+      mlog.log(r);
 
       expect(base)
         .equalIgnoreCase("SELECT hmsd.gender AS `gender`, hmsd.age_range AS `age_range`, count(hmsd.enrolled_this_month) AS `enrolled_this_month`, count(hmsd.pre_art) AS `pre_art`, count(hmsd.started_art) AS `started_art`, count(hmsd.current_in_care) AS `current_in_care`, count(hmsd.active_on_art) AS `active_on_art`, count(hmsd.on_ctx_prophylaxis) AS `on_ctx_prophylaxis`, sum(hmsd.screened_for_tb) AS `screened_for_tb`, sum(hmsd.tb_screened_positive) AS `tb_screened_positive`, sum(hmsd.started_ipt) AS `started_ipt`, sum(hmsd.completed_ipt_past_12_months) AS `completed_ipt_past_12_months`, sum(hmsd.condoms_provided) AS `condoms_provided`, sum(hmsd.condoms_provided) AS `started_modern_contraception`, sum(hmsd.on_modern_contraception) AS `on_modern_contraception`, sum(hmsd.f_gte_18_visits) AS `f_gte_18_visits` FROM (SELECT hmsd.gender AS `gender`, CASE WHEN (hmsd.age between 20 and 24) THEN '20_to_24' WHEN (hmsd.age between 15 and 19) THEN '15_to_19' WHEN (hmsd.age between 10 and 14) THEN '10_to_14' WHEN (hmsd.age between 1 and 9) THEN '1_to_9' WHEN (hmsd.age < 1) THEN '0_to_1' ELSE 'older_than_24' END AS `age_range`, case when enrolled_this_month=1 then 1 else null end AS `enrolled_this_month`, if(arv_first_regimen is null and status='active',1,null) AS `pre_art`, if(started_art_this_month=1  AND location_id = arv_first_regimen_location_id,1,null) AS `started_art`, case when status='active' then 1 else null end AS `current_in_care`, case when status='active' and on_art_this_month=1 then 1 else null end AS `active_on_art`, case when status='active' and on_pcp_prophylaxis_this_month=1 then 1 else null end AS `on_ctx_prophylaxis`, tb_screened_since_active AS `screened_for_tb`, tb_screened_positive_this_month AS `tb_screened_positive`, started_ipt_this_month AS `started_ipt`, completed_ipt_past_12_months AS `completed_ipt_past_12_months`, condoms_provided_this_month AS `condoms_provided`, started_modern_contraception_this_month AS `started_modern_contraception`, if(gender='F' and age>=15 and modern_contraception_since_active=1,1,0) AS `on_modern_contraception`, if(gender='F' and age >= 18 and visit_this_month=1,1,0) AS `f_gte_18_visits` FROM etl.hiv_monthly_report_dataset `hmsd` WHERE (endDate = '2017-11-30')) `hmsd` GROUP BY gender, age_range");
