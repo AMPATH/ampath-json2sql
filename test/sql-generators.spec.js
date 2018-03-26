@@ -147,6 +147,7 @@ describe('Generate Group by Specs', () => {
       generate = new SqlGenerators();
     });
     let groupBy = {
+      override: true,
       groupParam: 'groupByParam',
       columns: ['gender', 'age']
     };
@@ -156,11 +157,38 @@ describe('Generate Group by Specs', () => {
         .equalIgnoreCase('SELECT group by gender, age');
     });
 
-    it('It should ignore the report group columns if they are provided in the group params', () => {
+    it('It should ignore the report group columns if they are provided in the group params and override is true', () => {
       expect(generate.generateGroupBy(groupBy, {
         groupByParam: ['age']
       }).select.toString())
         .equalIgnoreCase('SELECT group by age');
+    });
+
+    let groupBy2 = {
+      override: false,
+      groupParam: 'groupByParam',
+      columns: ['gender', 'age']
+    };
+
+    it('It should combine the report group columns with param columns if override is false', () => {
+      expect(generate.generateGroupBy(groupBy2, {
+        groupByParam: ['age']
+      }).select.toString())
+        .equalIgnoreCase('SELECT group by gender, age');
+    });
+
+    let groupBy3 = {
+      override: false,
+      groupParam: 'groupByParam',
+      columns: ['gender', 'age'],
+      excludeParam: 'excludeParam'
+    };
+
+    it('It should should exculed colums defined in the exclude array of the groupBy', () => {
+      expect(generate.generateGroupBy(groupBy3, {
+        excludeParam: ['age']
+      }).select.toString())
+        .equalIgnoreCase('SELECT group by gender');
     });
   });
 });
@@ -449,6 +477,7 @@ describe('SQL to Json specs', () => {
       ],
       groupBy: {
         groupParam: 'groupByParam',
+        override: true,
         columns: ['gender', 'age']
       },
       orderBy: {
