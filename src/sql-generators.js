@@ -100,12 +100,13 @@ export default class SqlGenerators {
 
   generateGroupBy(groupBy, params) {
     let groupParams = params[groupBy.groupParam] || [];
+    let excludeParam = params[groupBy.excludeParam];
 
-    if (groupParams.length > 0) {
-      this._addGroupColumns(this.select, groupParams);
+    if (groupParams.length > 0 && groupBy.override) {
+      this._addGroupColumns(this.select, groupParams, excludeParam);
       return this;
     }
-    this._addGroupColumns(this.select, groupBy.columns);
+    this._addGroupColumns(this.select, [...new Set(groupBy.columns.concat(groupParams))], excludeParam);
     return this;
 
   }
@@ -209,7 +210,8 @@ export default class SqlGenerators {
     return params;
   }
 
-  _addGroupColumns(select, columns) {
+  _addGroupColumns(select, columns, exclude = []) {
+    columns = columns.filter((el) => !exclude.includes(el));
     for (let column of columns) {
       select.group(column);
     }
