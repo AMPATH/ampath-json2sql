@@ -22,7 +22,7 @@ export default class Json2Sql {
     }
 
     if (this.schema && this.schema.columns) {
-      generate.generateColumns(this.schema.columns);
+      generate.generateColumns(this.schema.columns, this.params);
     }
 
     if (this.schema && this.schema.groupBy) {
