@@ -1,6 +1,4 @@
 import * as Squel from 'squel';
-const stringInject = require('stringinject');
-
 import Json2Sql from './json2Sql.js';
 
 class CreateIndexBlock extends Squel.cls.Block {
