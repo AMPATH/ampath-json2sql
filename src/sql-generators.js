@@ -1,4 +1,6 @@
 import * as Squel from 'squel';
+const stringInject = require('stringinject');
+
 import Json2Sql from './json2Sql.js';
 
 class CreateIndexBlock extends Squel.cls.Block {
@@ -74,13 +76,15 @@ export default class SqlGenerators {
       fieldAliasQuoteCharacter: '`'
     });
   }
-  generateColumns(columns) {
+  generateColumns(columns, params = {}) {
     for (let column of columns) {
       if (column.type === 'simple_column') {
         this.select.field(column.column, column.alias);
       } else if (column.type === 'derived_column' && column.expressionType === 'simple_expression' &&
         column.expressionOptions && column.expressionOptions.expression) {
-        this.select.field(column.expressionOptions.expression, column.alias);
+        let injectedExpression = this._stringInject(column.expressionOptions.expression, params);
+
+        this.select.field(injectedExpression || column.expressionOptions.expression, column.alias);
       } else {
         this.select.field(this.generateCase(column), column.alias);
       }
@@ -226,5 +230,24 @@ export default class SqlGenerators {
       }
       select.order(column.column, asc);
     }
+  }
+
+  _stringInject(str, data) {
+    if (typeof str === 'string' && (data instanceof Object)) {
+
+      for (let key in data) {
+        return str.replace(/({([^}]+)})/g, function (i) {
+          let key = i.replace(/{/, '').replace(/}/, '');
+
+          if (!data[key]) {
+            return i;
+          }
+
+          return data[key];
+        });
+      }
+    }
+
+    return false;
   }
 }

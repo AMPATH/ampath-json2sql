@@ -57,7 +57,20 @@ describe('Generate Select Specs', () => {
       expect(generate.generateColumns(columns).select.toString())
         .equalIgnoreCase('SELECT p.age AS `age`, case when age between 0 and 1 then \'0_to_1\'  else \'older_than_24\'  end AS `age_range`, CASE WHEN (p.age between 11 and 14) THEN \'11_to_14\' WHEN (p.age between 1 and 9) THEN \'1_to_9\' ELSE \'older_than_24\' END AS `age_range2`');
     });
+    it('should replace placeholder params with actual params in expressions', () => {
+      let columns = [{
+        type: 'derived_column',
+        alias: 'age_range',
+        expressionType: 'simple_expression',
+        expressionOptions: {
+          expression: 'if(test=0 and date(start_date) between \'{startDate}\' and \'{endDate}\',person_id,null)'
+        }
+      }
+      ];
 
+      expect(generate.generateColumns(columns, {startDate: 'start', endDate: 'end'}).select.toString())
+        .equalIgnoreCase('SELECT if(test=0 and date(start_date) between \'start\' and \'end\',person_id,null) AS `age_range`');
+    });
     it('should return the correct select statement with index directives', () => {
       let indexDirectives = [{
         type: 'use',
@@ -853,169 +866,170 @@ describe('SQL to Json specs', () => {
       });
       let base = json2sql.generateSQL().toString();
       let baseSchem = {
-        "name": "retentionDataSetbase",
-        "version": "1.0",
-        "tag": "",
-        "description": "",
-        "uses": [],
-        "sources": [
-            {
-                "table": "etl.hiv_monthly_report_dataset",
-                "alias": "hmsd"
-            },
-            {
-                "table": "amrs.person",
-                "alias": "t1",
-                "join": {
-                    "type": "INNER",
-                    "joinCondition": "hmsd.person_id = t1.person_id"
-                }
-            },
-            {
-                "table": "amrs.person_name",
-                "alias": "person_name",
-                "join": {
-                    "type": "INNER",
-                    "joinCondition": "t1.person_id = person_name.person_id AND (person_name.voided IS NULL || person_name.voided = 0)"
-                }
-            },
-            {
-                "table": "amrs.patient_identifier",
-                "alias": "id",
-                "join": {
-                    "type": "LEFT OUTER",
-                    "joinCondition": "t1.person_id = person_name.person_id AND (person_name.voided IS NULL || person_name.voided = 0)"
-                }
+        'name': 'retentionDataSetbase',
+        'version': '1.0',
+        'tag': '',
+        'description': '',
+        'uses': [],
+        'sources': [
+          {
+            'table': 'etl.hiv_monthly_report_dataset',
+            'alias': 'hmsd'
+          },
+          {
+            'table': 'amrs.person',
+            'alias': 't1',
+            'join': {
+              'type': 'INNER',
+              'joinCondition': 'hmsd.person_id = t1.person_id'
             }
-        ],
-        "columns": [
-            {
-                "type": "simple_column",
-                "alias": "location_id",
-                "column": "hmsd.location_id"
-            },
-            {
-                "type": "simple_column",
-                "alias": "person_id",
-                "column": "hmsd.person_id"
-            },
-            {
-                "alias": "net_cohort",
-                "expressionOptions": {
-                    "expression": "1"
-                },
-                "type": "derived_column",
-                "expressionType": "simple_expression"
-            },
-            {
-                "alias": "active",
-                "expressionOptions": {
-                    "expression": "if(status='active',1,null)"
-                },
-                "type": "derived_column",
-                "expressionType": "simple_expression"
-            },
-            {
-                "alias": "ltfu",
-                "expressionOptions": {
-                    "expression": "if(status='ltfu',1,null)"
-                },
-                "type": "derived_column",
-                "expressionType": "simple_expression"
-            },
-            {
-                "alias": "dead",
-                "expressionOptions": {
-                    "expression": "if(status='dead',1,null)"
-                },
-                "type": "derived_column",
-                "expressionType": "simple_expression"
-            },
-            {
-                "alias": "on_tx",
-                "expressionOptions": {
-                    "expression": "if(on_art_this_month=1,1,null)"
-                },
-                "type": "derived_column",
-                "expressionType": "simple_expression"
-            },
-            {
-                "alias": "suppressed",
-                "expressionOptions": {
-                    "expression": "if(vl_1<1000 and vl_in_past_year=1,1,null)"
-                },
-                "type": "derived_column",
-                "expressionType": "simple_expression"
-            },
-            {
-                "alias": "total_with_vl",
-                "expressionOptions": {
-                    "expression": "if(vl_in_past_year=1,1,null)"
-                },
-                "type": "derived_column",
-                "expressionType": "simple_expression"
-            },
-            {
-                "type": "derived_column",
-                "alias": "person_name",
-                "expressionType": "simple_expression",
-                "expressionOptions": {
-                    "expression": " CONCAT(COALESCE(person_name.given_name, ''), ' ', COALESCE(person_name.middle_name, ''), ' ', COALESCE(person_name.family_name, ''))"
-                }
-            },
-            {
-                "type": "derived_column",
-                "alias": "person_identifiers",
-                "expressionType": "simple_expression",
-                "expressionOptions": {
-                    "expression": " GROUP_CONCAT(DISTINCT id.identifier SEPARATOR ', ')"
-                }
+          },
+          {
+            'table': 'amrs.person_name',
+            'alias': 'person_name',
+            'join': {
+              'type': 'INNER',
+              'joinCondition': 't1.person_id = person_name.person_id AND (person_name.voided IS NULL || person_name.voided = 0)'
             }
+          },
+          {
+            'table': 'amrs.patient_identifier',
+            'alias': 'id',
+            'join': {
+              'type': 'LEFT OUTER',
+              'joinCondition': 't1.person_id = person_name.person_id AND (person_name.voided IS NULL || person_name.voided = 0)'
+            }
+          }
         ],
-        "filters": {
-            "conditionJoinOperator": "and",
-            "conditions": [
-                {
-                    "filterType": "tableColumns",
-                    "conditionExpression": "endDate = ?",
-                    "parameterName": "endDate"
-                },
-                {
-                    "filterType": "tableColumns",
-                    "conditionExpression": "status in ('active','ltfu','dead')",
-                    "parameterName": ""
-                },
-                {
-                    "filterType": "tableColumns",
-                    "conditionExpression": "arv_first_regimen_start_date between date_format(date_sub(endDate,interval 1 year),'%Y-%m-01') and date_sub(endDate,interval 1 year)",
-                    "parameterName": ""
-                },
-                {
-                  "filterActingOn": "derived_column",
-                  "conditionExpression": "1 = (if(status='active',1,null))",
-                  "dynamicallyGenerated": true,
-                  "filterType": "tableColumns",
-                  "parameterName": ""
-              }
-            ]
+        'columns': [
+          {
+            'type': 'simple_column',
+            'alias': 'location_id',
+            'column': 'hmsd.location_id'
+          },
+          {
+            'type': 'simple_column',
+            'alias': 'person_id',
+            'column': 'hmsd.person_id'
+          },
+          {
+            'alias': 'net_cohort',
+            'expressionOptions': {
+              'expression': '1'
+            },
+            'type': 'derived_column',
+            'expressionType': 'simple_expression'
+          },
+          {
+            'alias': 'active',
+            'expressionOptions': {
+              'expression': "if(status='active',1,null)"
+            },
+            'type': 'derived_column',
+            'expressionType': 'simple_expression'
+          },
+          {
+            'alias': 'ltfu',
+            'expressionOptions': {
+              'expression': "if(status='ltfu',1,null)"
+            },
+            'type': 'derived_column',
+            'expressionType': 'simple_expression'
+          },
+          {
+            'alias': 'dead',
+            'expressionOptions': {
+              'expression': "if(status='dead',1,null)"
+            },
+            'type': 'derived_column',
+            'expressionType': 'simple_expression'
+          },
+          {
+            'alias': 'on_tx',
+            'expressionOptions': {
+              'expression': 'if(on_art_this_month=1,1,null)'
+            },
+            'type': 'derived_column',
+            'expressionType': 'simple_expression'
+          },
+          {
+            'alias': 'suppressed',
+            'expressionOptions': {
+              'expression': 'if(vl_1<1000 and vl_in_past_year=1,1,null)'
+            },
+            'type': 'derived_column',
+            'expressionType': 'simple_expression'
+          },
+          {
+            'alias': 'total_with_vl',
+            'expressionOptions': {
+              'expression': 'if(vl_in_past_year=1,1,null)'
+            },
+            'type': 'derived_column',
+            'expressionType': 'simple_expression'
+          },
+          {
+            'type': 'derived_column',
+            'alias': 'person_name',
+            'expressionType': 'simple_expression',
+            'expressionOptions': {
+              'expression': " CONCAT(COALESCE(person_name.given_name, ''), ' ', COALESCE(person_name.middle_name, ''), ' ', COALESCE(person_name.family_name, ''))"
+            }
+          },
+          {
+            'type': 'derived_column',
+            'alias': 'person_identifiers',
+            'expressionType': 'simple_expression',
+            'expressionOptions': {
+              'expression': " GROUP_CONCAT(DISTINCT id.identifier SEPARATOR ', ')"
+            }
+          }
+        ],
+        'filters': {
+          'conditionJoinOperator': 'and',
+          'conditions': [
+            {
+              'filterType': 'tableColumns',
+              'conditionExpression': 'endDate = ?',
+              'parameterName': 'endDate'
+            },
+            {
+              'filterType': 'tableColumns',
+              'conditionExpression': "status in ('active','ltfu','dead')",
+              'parameterName': ''
+            },
+            {
+              'filterType': 'tableColumns',
+              'conditionExpression': "arv_first_regimen_start_date between date_format(date_sub(endDate,interval 1 year),'%Y-%m-01') and date_sub(endDate,interval 1 year)",
+              'parameterName': ''
+            },
+            {
+              'filterActingOn': 'derived_column',
+              'conditionExpression': "1 = (if(status='active',1,null))",
+              'dynamicallyGenerated': true,
+              'filterType': 'tableColumns',
+              'parameterName': ''
+            }
+          ]
         },
 
-        "paging": {
-            "offSetParam": "offSetParam",
-            "limitParam": "limitParam"
+        'paging': {
+          'offSetParam': 'offSetParam',
+          'limitParam': 'limitParam'
         },
-        "groupBy": {
-            "columns": [
-                "t1.person_id"
-            ]
+        'groupBy': {
+          'columns': [
+            't1.person_id'
+          ]
         }
-    };
+      };
       let json2sql2 = new Json2Sql(baseSchem, {
         baseSchem
       }, {
         endDate: '2017-11-30'
       });
       let r = json2sql2.generateSQL().toString();
+
       mlog.log(r);
 
       expect(base)
