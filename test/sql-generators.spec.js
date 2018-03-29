@@ -151,6 +151,24 @@ describe('Generate Where Specs', () => {
       }).select.toString())
         .equalIgnoreCase('SELECT where (endDate = \'2017-10-10\')');
     });
+
+    let filters2 = {
+      conditionJoinOperator: 'and',
+      conditions: [{
+        filterType: 'tableColumns',
+        conditionExpression: '1 = (if(hiv_exposed_occupational=0 and date(pep_start_date) between \'{startDate}\' and \'{endDate}\',pep.person_id,null))',
+        parameterName: ''
+      }]
+    };
+
+    it('should inject params into where clause', () => {
+      expect(generate.generateWhere(filters2, {
+        endDate: '2017-10-10',
+        startDate: '2017-10-10'
+      }).select.toString())
+        .equalIgnoreCase('SELECT WHERE (1 = (if(hiv_exposed_occupational=0 and date(pep_start_date) between \'2017-10-10\' and \'2017-10-10\',pep.person_id,null)))');
+    });
+
   });
 });
 
