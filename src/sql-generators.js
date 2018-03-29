@@ -92,7 +92,9 @@ export default class SqlGenerators {
   generateWhere(filters, params) {
     for (let condition of filters.conditions) {
       if (condition.conditionExpression) {
-        this.select.where(condition.conditionExpression, params[condition.parameterName]);
+        let injectedExpression = this._stringInject(condition.conditionExpression, params);
+
+        this.select.where(injectedExpression || condition.conditionExpression, params[condition.parameterName]);
       } else {
         console.error('Where condition not found');
       }
