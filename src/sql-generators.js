@@ -75,7 +75,14 @@ export default class SqlGenerators {
     });
   }
   generateColumns(columns, params = {}) {
-    for (let column of columns) {
+    let filteredCoulmn = columns;
+
+    if (params.columnWhitelist && params.columnWhitelist.length > 0) {
+      filteredCoulmn = columns.filter(function (el) {
+        return params.columnWhitelist.indexOf(el.alias) >= 0;
+      });
+    }
+    for (let column of filteredCoulmn) {
       if (column.type === 'simple_column') {
         this.select.field(column.column, column.alias);
       } else if (column.type === 'derived_column' && column.expressionType === 'simple_expression' &&
@@ -93,8 +100,14 @@ export default class SqlGenerators {
     for (let condition of filters.conditions) {
       if (condition.conditionExpression) {
         let injectedExpression = this._stringInject(condition.conditionExpression, params);
+        let param = params[condition.parameterName];
 
-        this.select.where(injectedExpression || condition.conditionExpression, params[condition.parameterName]);
+        if ((condition.parameterName && condition.parameterName !== '') && (!param || param === '')) {
+          console.warn('Filter requires a parameter that was not supplied skipping');
+          continue;
+        }
+
+        this.select.where(injectedExpression || condition.conditionExpression, param);
       } else {
         console.error('Where condition not found');
       }
