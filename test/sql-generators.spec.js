@@ -19,6 +19,22 @@ describe('Generate Select Specs', () => {
 
   });
   describe('Should return columns when generateColumns() is called with a columns json object', () => {
+    it('should use whitelisted columns when the whitelist columns param is provided', () => {
+      let columns = [{
+        type: 'simple_column',
+        alias: 'age',
+        column: 'p.age'
+      },
+      {
+        type: 'simple_column',
+        alias: 'gender',
+        column: 'p.gender'
+      }
+      ];
+
+      expect(generate.generateColumns(columns, {columnWhitelist: ['gender']}).select.toString())
+        .equalIgnoreCase('SELECT p.gender AS `gender`');
+    });
     it('should return the correct select statement', () => {
       let columns = [{
         type: 'simple_column',
@@ -150,6 +166,11 @@ describe('Generate Where Specs', () => {
 
       }).select.toString())
         .equalIgnoreCase('SELECT where (endDate = \'2017-10-10\')');
+    });
+
+    it('should Skip a filter if a params is not supplied', () => {
+      expect(generate.generateWhere(filters, {}).select.toString())
+        .equalIgnoreCase('SELECT');
     });
 
     let filters2 = {
