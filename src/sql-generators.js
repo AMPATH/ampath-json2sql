@@ -180,9 +180,11 @@ export default class SqlGenerators {
         let json2sql = new Json2Sql(dataSets[dataSource.dataSet], dataSets, params);
 
         selectSubquery = json2sql.generateSQL();
+      }else{
+        selectSubquery =  dataSource.table;
       }
       if (firstRun) {
-        this.select.from(selectSubquery || dataSource.table, dataSource.alias);
+        this.select.from(selectSubquery , dataSource.alias);
         firstRun = false;
       }
       if (!firstRun && dataSource.join) {
