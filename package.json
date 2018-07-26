@@ -48,11 +48,11 @@
     "eslint-plugin-standard": "^3.0.1",
     "mocha": "^4.0.1",
     "webpack": "^3.10.0",
-    "yargs": "^10.0.3"
+    "yargs": "^10.0.3",
+    "mocha-logger": "^1.0.5",
+    "nyc": "^11.4.1"
   },
   "dependencies": {
-    "mocha-logger": "^1.0.5",
-    "nyc": "^11.4.1",
     "squel": "^5.12.0"
   }
 }
