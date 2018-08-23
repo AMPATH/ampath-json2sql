@@ -180,25 +180,29 @@ export default class SqlGenerators {
         let json2sql = new Json2Sql(dataSets[dataSource.dataSet], dataSets, params);
 
         selectSubquery = json2sql.generateSQL();
-      }else{
-        selectSubquery =  dataSource.table;
+      } else {
+        selectSubquery = dataSource.table;
       }
       if (firstRun) {
-        this.select.from(selectSubquery , dataSource.alias);
+        this.select.from(selectSubquery, dataSource.alias);
         firstRun = false;
       }
       if (!firstRun && dataSource.join) {
         let joinType = dataSource.join.type.toUpperCase();
+        let joinExpression =
+             this._stringInject(dataSource.join.joinCondition, params);
+
+        joinExpression = joinExpression || dataSource.join.joinCondition;
 
         switch (joinType) {
           case 'RIGHT':
-            this.select.right_join(selectSubquery || dataSource.table, dataSource.alias, dataSource.join.joinCondition);
+            this.select.right_join(selectSubquery || dataSource.table, dataSource.alias, joinExpression);
             break;
           case 'LEFT':
-            this.select.left_join(selectSubquery || dataSource.table, dataSource.alias, dataSource.join.joinCondition);
+            this.select.left_join(selectSubquery || dataSource.table, dataSource.alias, joinExpression);
             break;
           default:
-            this.select.join(selectSubquery || dataSource.table, dataSource.alias, dataSource.join.joinCondition);
+            this.select.join(selectSubquery || dataSource.table, dataSource.alias, joinExpression);
         }
       }
     }

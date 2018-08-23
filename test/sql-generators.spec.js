@@ -385,11 +385,11 @@ describe('Datasources specs', () => {
       }
     },
     {
-      "table": "amrs.person",
-      "alias": "t1",
-      "join": {
-        "type": "INNER",
-        "joinCondition": "t2.person_id = t1.person_id"
+      'table': 'amrs.person',
+      'alias': 't1',
+      'join': {
+        'type': 'INNER',
+        'joinCondition': 't2.person_id = t1.person_id'
       }
     }
     ];
@@ -523,7 +523,7 @@ describe('SQL to Json specs', () => {
         alias: 'p',
         join: {
           type: 'inner',
-          joinCondition: 'p.patient_id = hms.patient_id and p.voided is null'
+          joinCondition: "p.patient_id = hms.patient_id and p.voided is null and hms.endDate = '{endDate}'"
         }
       },
       {
@@ -598,7 +598,7 @@ describe('SQL to Json specs', () => {
     let full = json2sql.generateSQL().toString();
 
     expect(full)
-      .equalIgnoreCase("SELECT * FROM etl.hiv_monthly_summary `hms` USE INDEX FOR JOIN (index1,index2) , FORCE INDEX  (index3,index4) INNER JOIN amrs.patient `p` ON (p.patient_id = hms.patient_id and p.voided is null) INNER JOIN (SELECT * FROM etl.hiv_monthly_summary `e` LEFT JOIN (SELECT * FROM etl.hiv_monthly_summary `e` WHERE (endDate = '2017-10-10')) `o` ON (e.patient_id = hms.patient_id and e.voided is null) WHERE (endDate = '2017-10-10')) `e` ON (e.patient_id = hms.patient_id and e.voided is null) GROUP BY age ORDER BY age ASC LIMIT 10 OFFSET 0");
+      .equalIgnoreCase("SELECT * FROM etl.hiv_monthly_summary `hms` USE INDEX FOR JOIN (index1,index2) , FORCE INDEX  (index3,index4) INNER JOIN amrs.patient `p` ON (p.patient_id = hms.patient_id and p.voided is null and hms.endDate = '2017-10-10') INNER JOIN (SELECT * FROM etl.hiv_monthly_summary `e` LEFT JOIN (SELECT * FROM etl.hiv_monthly_summary `e` WHERE (endDate = '2017-10-10')) `o` ON (e.patient_id = hms.patient_id and e.voided is null) WHERE (endDate = '2017-10-10')) `e` ON (e.patient_id = hms.patient_id and e.voided is null) GROUP BY age ORDER BY age ASC LIMIT 10 OFFSET 0");
   });
 
   describe('MOH 731 green card tests', () => {
