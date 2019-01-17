@@ -343,6 +343,49 @@ describe('Datasources specs', () => {
   beforeEach(() => {
     generate = new SqlGenerators();
   });
+
+  it('should process parameterized sources', () => {
+    let dataSources = [
+      {
+        table: '<<tableSource>>',
+        alias: 'tbs'
+      },
+      {
+        dataSet: '<<setSource>>',
+        alias: 'hms'
+      },
+      {
+        dataSet: 'set3',
+        alias: 's3'
+      }
+    ];
+
+    let params = {
+      'tableSource': 'etl.flat_table',
+      'setSource': 'some_source'
+    };
+
+    let transformedSource = generate.handleParameterizedSources(dataSources, params);
+
+    expect(transformedSource).to.deep.equal(
+      [
+        {
+          table: 'etl.flat_table',
+          alias: 'tbs'
+        },
+        {
+          dataSet: 'some_source',
+          alias: 'hms'
+        },
+        {
+          dataSet: 'set3',
+          alias: 's3'
+        }
+      ]
+    );
+
+  });
+
   it('It Should generate the correct query with the defined joins when generateDataSources() is called', () => {
     let dataSources = [{
       table: 'etl.hiv_monthly_summary',
@@ -909,7 +952,8 @@ describe('SQL to Json specs', () => {
       let json2sql = new Json2Sql(mainSchema, {
         baseSchema
       }, {
-        endDate: '2017-11-30'
+        endDate: '2017-11-30',
+        retentionSource: 'etl.hiv_monthly_report_dataset'
       });
       let base = json2sql.generateSQL().toString();
       let baseSchem = {
@@ -920,7 +964,7 @@ describe('SQL to Json specs', () => {
         'uses': [],
         'sources': [
           {
-            'table': 'etl.hiv_monthly_report_dataset',
+            'table': '<<retentionSource>>',
             'alias': 'hmsd'
           },
           {
@@ -1083,14 +1127,6 @@ describe('SQL to Json specs', () => {
         .equalIgnoreCase("SELECT hmsd.gender AS `gender`, hmsd.age_range AS `age_range`, count(hmsd.enrolled_this_month) AS `enrolled_this_month`, count(hmsd.pre_art) AS `pre_art`, count(hmsd.started_art) AS `started_art`, count(hmsd.current_in_care) AS `current_in_care`, count(hmsd.active_on_art) AS `active_on_art`, count(hmsd.on_ctx_prophylaxis) AS `on_ctx_prophylaxis`, sum(hmsd.screened_for_tb) AS `screened_for_tb`, sum(hmsd.tb_screened_positive) AS `tb_screened_positive`, sum(hmsd.started_ipt) AS `started_ipt`, sum(hmsd.completed_ipt_past_12_months) AS `completed_ipt_past_12_months`, sum(hmsd.condoms_provided) AS `condoms_provided`, sum(hmsd.condoms_provided) AS `started_modern_contraception`, sum(hmsd.on_modern_contraception) AS `on_modern_contraception`, sum(hmsd.f_gte_18_visits) AS `f_gte_18_visits` FROM (SELECT hmsd.gender AS `gender`, CASE WHEN (hmsd.age between 20 and 24) THEN '20_to_24' WHEN (hmsd.age between 15 and 19) THEN '15_to_19' WHEN (hmsd.age between 10 and 14) THEN '10_to_14' WHEN (hmsd.age between 1 and 9) THEN '1_to_9' WHEN (hmsd.age < 1) THEN '0_to_1' ELSE 'older_than_24' END AS `age_range`, case when enrolled_this_month=1 then 1 else null end AS `enrolled_this_month`, if(arv_first_regimen is null and status='active',1,null) AS `pre_art`, if(started_art_this_month=1  AND location_id = arv_first_regimen_location_id,1,null) AS `started_art`, case when status='active' then 1 else null end AS `current_in_care`, case when status='active' and on_art_this_month=1 then 1 else null end AS `active_on_art`, case when status='active' and on_pcp_prophylaxis_this_month=1 then 1 else null end AS `on_ctx_prophylaxis`, tb_screened_since_active AS `screened_for_tb`, tb_screened_positive_this_month AS `tb_screened_positive`, started_ipt_this_month AS `started_ipt`, completed_ipt_past_12_months AS `completed_ipt_past_12_months`, condoms_provided_this_month AS `condoms_provided`, started_modern_contraception_this_month AS `started_modern_contraception`, if(gender='F' and age>=15 and modern_contraception_since_active=1,1,0) AS `on_modern_contraception`, if(gender='F' and age >= 18 and visit_this_month=1,1,0) AS `f_gte_18_visits` FROM etl.hiv_monthly_report_dataset `hmsd` WHERE (endDate = '2017-11-30')) `hmsd` GROUP BY gender, age_range");
 
     });
-  });
-
-  describe('MOH 731 blue card tests', () => {
-    beforeEach(() => {
-
-      generate = new SqlGenerators();
-    });
-
   });
 
 });

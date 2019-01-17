@@ -37,6 +37,10 @@ ES6 source files
 2. Build your library
   * Run `yarn install` (recommended) or `npm install` to get the project's dependencies
   * Run `yarn build` or `npm run build` to produce minified version of your library.
+  * Run git add -f lib
+  * Run git commit -m 'Bump <Version>'
+  * Run git tag <Version>
+  * Run git reset HEAD~1 --hard
 3. Development mode
   * Having all the dependencies installed run `yarn dev` or `npm run dev`. This command will generate an non-minified version of your library and will run a watcher so you get the compilation on file change.
 4. Running the tests
