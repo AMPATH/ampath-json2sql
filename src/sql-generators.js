@@ -74,6 +74,50 @@ export default class SqlGenerators {
       fieldAliasQuoteCharacter: '`'
     });
   }
+  handleParameterizedSources(datasources, params = {}) {
+    if (Array.isArray(datasources)) {
+      for (let i = 0; i < datasources.length; i++) {
+        const source = datasources[i];
+
+        if (source.table && source.table.indexOf('<<') >= 0) {
+          let variable = this._getVariable(source.table);
+
+          // console.error('variable presence', variable, params[variable], params);
+
+          if (params[variable]) {
+            source.table = this._replaceVariable(source.table, variable, params[variable]);
+          }
+
+        }
+
+        if (source.dataSet && source.dataSet.indexOf('<<') >= 0) {
+          let variable = this._getVariable(source.dataSet);
+
+          if (params[variable]) {
+            source.dataSet = this._replaceVariable(source.dataSet, variable, params[variable]);
+          }
+
+        }
+      }
+    }
+    return datasources;
+  }
+
+  _getVariable(expression) {
+    if (expression.indexOf('<<') >= 0) {
+      const startIndex = expression.indexOf('<<');
+
+      const endIndex = expression.indexOf('>>');
+
+      return expression.substring(startIndex + 2, endIndex);
+    }
+    return undefined;
+  }
+
+  _replaceVariable(expression, variableName, value) {
+    return expression.replace('<<' + variableName + '>>', value);
+  }
+
   generateColumns(columns, params = {}) {
     let filteredCoulmn = columns;
 
